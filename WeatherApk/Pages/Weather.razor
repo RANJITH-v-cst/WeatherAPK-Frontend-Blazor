@@ -169,7 +169,7 @@
 
         try
         {
-            var response = await Http.PostAsJsonAsync("https://localhost:7055/favorites/remove", new { Email = userEmail, City = city });
+            var response = await Http.PostAsJsonAsync("https://localhost:7055/api/UserFavorites/remove", new { Email = userEmail, City = city });
 
             if (response.IsSuccessStatusCode)
             {
