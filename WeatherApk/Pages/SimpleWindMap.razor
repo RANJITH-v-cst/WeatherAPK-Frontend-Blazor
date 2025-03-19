@@ -1,0 +1,378 @@
+﻿@page "/map"
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<div class="weather-map-wrapper">
+    <div class="map-card">
+        <div class="map-header">
+            <h2>Weather Map</h2>
+        </div>
+        <div id="map" class="map-container"></div>
+
+        <div class="control-panel glass-card">
+            <div class="input-group">
+                <input type="text"
+                       @bind="city"
+                       placeholder="Enter city name"
+                       @onkeyup="@(e => { if (e.Key == "Enter") UpdateMap(); })" />
+                <button @onclick="UpdateMap" class="bt">
+                    <span class="material-icons">refresh</span>
+                    Update
+                </button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-alert glass-card">
+                    <span class="material-icons">error_outline</span>
+                    @errorMessage
+                </div>
+            }
+        </div>
+
+        @if (weatherData != null)
+        {
+            <div class="weather-details glass-card">
+                <h3>@weatherData.Name, @weatherData.Sys?.Country</h3>
+                <div class="weather-grid">
+                    <div class="weather-item glass-card">
+                        <span class="material-icons">thermostat</span>
+                        <div>
+                            <strong>Temperature:</strong>
+                            @((weatherData.Main?.Temp - 273.15))°C
+                        </div>
+                    </div>
+                    <div class="weather-item glass-card">
+                        <span class="material-icons">water_drop</span>
+                        <div>
+                            <strong>Humidity:</strong>
+                            @weatherData.Main?.Humidity%
+                        </div>
+                    </div>
+                    <div class="weather-item glass-card">
+                        <span class="material-icons">air</span>
+                        <div>
+                            <strong>Wind:</strong>
+                            @weatherData.Wind?.Speed m/s
+                        </div>
+                    </div>
+                    <div class="weather-item glass-card">
+                        <span class="material-icons">cloud</span>
+                        <div>
+                            <strong>Conditions:</strong>
+                            @weatherData.Weather?.FirstOrDefault()?.Description
+                        </div>
+                    </div>
+                    <div class="weather-item glass-card">
+                        <span class="material-icons">wb_sunny</span>
+                        <div>
+                            <strong>Sunrise:</strong>
+                            @(weatherData.Sys?.Sunrise != null ? DateTimeOffset.FromUnixTimeSeconds(weatherData.Sys.Sunrise.Value).ToLocalTime().ToString("HH:mm") : "N/A")
+                        </div>
+                    </div>
+                    <div class="weather-item glass-card">
+                        <span class="material-icons">nights_stay</span>
+                        <div>
+                            <strong>Sunset:</strong>
+                            @(weatherData.Sys?.Sunset != null ? DateTimeOffset.FromUnixTimeSeconds(weatherData.Sys.Sunset.Value).ToLocalTime().ToString("HH:mm") : "N/A")
+                        </div>
+                    </div>
+                    <div class="weather-item glass-card">
+                        <span class="material-icons">wb_twilight</span>
+                        <div>
+                            <strong>UV Index:</strong>
+                            @(uvIndex != null ? uvIndex.Value.ToString("F1") : "Loading...")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string city = "bengaluru";
+    private string errorMessage = "";
+    private WeatherResponse? weatherData;
+    private double? uvIndex;
+    private const string API_KEY = "2c7aa567661f19ea0d12656093437448";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadMap();
+        }
+    }
+
+    private async Task LoadMap()
+    {
+        try
+        {
+            var coordinates = await GetCoordinates();
+            if (coordinates != null)
+            {
+                await JSRuntime.InvokeVoidAsync("initWeatherMap",
+                    coordinates.Lat,
+                    coordinates.Lon,
+                    API_KEY);
+                await GetUVIndex(coordinates.Lat, coordinates.Lon);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading map: {ex.Message}";
+        }
+    }
+
+    private async Task UpdateMap()
+    {
+        var coordinates = await GetCoordinates();
+        if (coordinates != null)
+        {
+            await LoadMap();
+        }
+        StateHasChanged();
+    }
+
+    private async Task<Coordinates?> GetCoordinates()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<WeatherResponse>(
+                $"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}");
+
+            if (response?.Coord != null)
+            {
+                weatherData = response;
+                errorMessage = "";
+                return response.Coord;
+            }
+            weatherData = null;
+            uvIndex = null;
+            errorMessage = "City not found";
+            return null;
+        }
+        catch (Exception ex)
+        {
+            weatherData = null;
+            uvIndex = null;
+            errorMessage = $"Error fetching coordinates: {ex.Message}";
+            return null;
+        }
+    }
+
+    private async Task GetUVIndex(double lat, double lon)
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<UVResponse>(
+                $"https://api.openweathermap.org/data/2.5/uvi?lat={lat}&lon={lon}&appid={API_KEY}");
+            uvIndex = response?.Value;
+        }
+        catch (Exception ex)
+        {
+            uvIndex = null;
+            errorMessage = $"Error fetching UV index: {ex.Message}";
+        }
+    }
+
+    // Enhanced data models
+    private class WeatherResponse
+    {
+        public Coordinates? Coord { get; set; }
+        public WeatherInfo[]? Weather { get; set; }
+        public MainInfo? Main { get; set; }
+        public WindInfo? Wind { get; set; }
+        public SysInfo? Sys { get; set; }
+        public string? Name { get; set; }
+    }
+
+    private class Coordinates
+    {
+        public double Lat { get; set; }
+        public double Lon { get; set; }
+    }
+
+    private class WeatherInfo
+    {
+        public string? Description { get; set; }
+    }
+
+    private class MainInfo
+    {
+        public double Temp { get; set; }
+        public int Humidity { get; set; }
+    }
+
+    private class WindInfo
+    {
+        public double Speed { get; set; }
+    }
+
+    private class SysInfo
+    {
+        public string? Country { get; set; }
+        public long? Sunrise { get; set; }
+        public long? Sunset { get; set; }
+    }
+
+    private class UVResponse
+    {
+        public double Value { get; set; }
+    }
+}
+
+<style>
+    .weather-map-wrapper {
+        max-width: 1000px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        background: url('https://www.transparenttextures.com/patterns/weather.png');
+        background-size: cover;
+    }
+
+    .map-card {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .map-header {
+        padding: 1rem;
+        background: linear-gradient(135deg, rgba(0, 123, 255, 0.9), rgba(0, 183, 255, 0.9));
+        color: white;
+        backdrop-filter: blur(5px);
+    }
+
+        .map-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+    .map-container {
+        width: 100%;
+        height: 450px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .control-panel {
+        margin: 1.5rem;
+        padding: 1.5rem;
+    }
+
+    .input-group {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    input {
+        flex: 1;
+        padding: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        font-size: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        color: #333;
+        transition: all 0.3s ease;
+    }
+
+        input:focus {
+            outline: none;
+            border-color: rgba(0, 123, 255, 0.5);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+    .bt {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, #007bff, #00b7ff);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+    }
+
+        button:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #0056b3, #0096d6);
+        }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .error-alert {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        color: #ff6b6b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .weather-details {
+        margin: 0 1.5rem 1.5rem 1.5rem;
+        padding: 1.5rem;
+    }
+
+        .weather-details h3 {
+            margin: 0 0 1.5rem 0;
+            color: #333;
+            text-align: center;
+        }
+
+    .weather-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        justify-content: center;
+        max-width: 100%;
+    }
+
+    .weather-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        min-height: 60px;
+    }
+
+        .weather-item div {
+            flex: 1;
+        }
+
+    .material-icons {
+        font-family: 'Material Icons';
+        font-size: 1.5rem;
+        color: rgba(0, 0, 0, 0.7);
+    }
+
+    @@media (max-width: 600px) {
+        .input-group {
+            flex-direction: column;
+        }
+
+        .bt {
+            width: 100%;
+        }
+
+        .weather-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

@@ -1,0 +1,193 @@
+﻿@page "/food-suggestions"
+@inject IJSRuntime JS
+@inject HttpClient Http
+
+<style>
+    .glass-card {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 30px;
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #fff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    h3 {
+        font-size: 2.2rem;
+    }
+
+    h4 {
+        font-size: 1.7rem;
+    }
+
+    .food-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 30px;
+        margin-top: 30px;
+        padding: 10px;
+    }
+
+    .food-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 25px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: transform 0.3s ease, background 0.3s ease;
+        min-height: 180px;
+    }
+
+        .food-item:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .food-item .icon {
+            font-size: 4.2rem; /* Bigger icon */
+            margin-bottom: 14px;
+        }
+
+        .food-item .name {
+            font-weight: 700;
+            font-size: 1.5rem; /* Bigger name */
+            text-align: center;
+            color: #fff;
+        }
+
+    .badge {
+        font-size: 1.3rem;
+        padding: 10px 20px;
+        border-radius: 50px;
+    }
+</style>
+
+<div class="glass-card text-center">
+    <h3 class="mb-3">🍔 Food Suggestions Based on Weather 🌤️</h3>
+
+    @if (isLoading)
+    {
+        <p>Fetching your location and weather...</p>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <p class="text-danger">@errorMessage</p>
+    }
+    else
+    {
+        <h4 class="mb-2">Location: <span class="badge bg-light text-dark">@cityName</span></h4>
+        <h4 class="mb-4">Current Weather: <span class="badge bg-info">@weatherCondition</span></h4>
+
+        <div class="food-grid">
+            @foreach (var food in foodSuggestions)
+            {
+                <div class="food-item">
+                    <div class="icon">@food.Icon</div>
+                    <div class="name">@food.Name</div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string weatherCondition = string.Empty;
+    private string cityName = string.Empty;
+    private string errorMessage = string.Empty;
+    private List<FoodItem> foodSuggestions = new();
+
+    private string apiKey = "2c7aa567661f19ea0d12656093437448"; // Replace this with your real API key!
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Get user location
+            var location = await JS.InvokeAsync<Location>("getCurrentLocation");
+
+            // Fetch real weather data
+            await getCurrentLocation(location.Latitude, location.Longitude);
+
+            // Get food suggestions based on actual weather condition
+            foodSuggestions = GetFoodSuggestions(weatherCondition);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task getCurrentLocation(double latitude, double longitude)
+    {
+        var url = $"https://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&appid={apiKey}&units=metric";
+        var response = await Http.GetFromJsonAsync<WeatherResponse>(url);
+
+        if (response != null)
+        {
+            weatherCondition = response.Weather.FirstOrDefault()?.Main ?? "Unknown";
+            cityName = response.Name;
+        }
+    }
+
+    private List<FoodItem> GetFoodSuggestions(string weather)
+    {
+        return weather switch
+        {
+            "Clear" or "Sunny" => new List<FoodItem> {
+                new("Ice Cream", "🍨"), new("Cold Drinks", "🥤"), new("Fruit Salad", "🍓"), new("Smoothie Bowl", "🍧")
+            },
+            "Rain" or "Drizzle" => new List<FoodItem> {
+                new("Hot Soup", "🍲"), new("Pakoras", "🍘"), new("Chai Tea", "🍵"), new("Hot Chocolate", "☕"), new("Coffee", "☕"),
+            },
+            "Clouds" => new List<FoodItem> {
+                new("Sandwich", "🥪"), new("Coffee", "☕"), new("Donuts", "🍩"), new("Cookies", "🍪"), new("Chai Tea", "🍵")
+            },
+            "Snow" or "Cold" => new List<FoodItem> {
+                new("Hot Chocolate", "☕"), new("Stew", "🥘"), new("Warm Desserts", "🍰"), new("Grilled Cheese", "🧀"), new("Soup", "🍲")
+            },
+            "Thunderstorm" => new List<FoodItem> {
+                new("Soup", "🍲"), new("Comfort Food", "🍔"), new("Cupcakes", "🧁")
+            },
+            "Mist" or "Fog" => new List<FoodItem> {
+                new("Warm Soup", "🍲"), new("Coffee", "☕"), new("Cookies", "🍪")
+            },
+            _ => new List<FoodItem> {
+                new("Snacks", "🍿"), new("Juice", "🧃"), new("Comfort Food", "🍔")
+            }
+        };
+    }
+
+    private class Location
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
+
+    public class WeatherResponse
+    {
+        public List<WeatherInfo> Weather { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class WeatherInfo
+    {
+        public string Main { get; set; }
+    }
+
+    private record FoodItem(string Name, string Icon);
+}
+
+

@@ -1,0 +1,525 @@
+﻿@page "/"
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+<style>
+    /* Container for weather cards */
+    .weather-cards-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px;
+        justify-content: center;
+        background-color: transparent;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin: 15px 0;
+        max-height: 500px;
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
+    /* Individual weather card styling */
+    .weather-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 16px;
+        width: 280px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin: 4px;
+    }
+
+        .weather-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+    /* Header styling */
+    .weather-card-header h5 {
+        margin: 0;
+        color: #007bff;
+        font-size: 25px;
+        font-weight: bold;
+    }
+
+    /* Content styling */
+    .weather-card-content p {
+        margin: 8px 0;
+        color: #333;
+        font-size: 16px;
+    }
+
+    /* General weather container */
+    .weather-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 32px;
+        background: transparent;
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        margin: 24px;
+        max-width: 1200px;
+        overflow-y: auto;
+    }
+
+    /* Title styling */
+    .weather-title {
+        margin-bottom: 24px;
+        color: white;
+        font-size: 36px;
+        font-weight: bold;
+        text-align: center;
+    }
+    .input{
+        border-radius: 12px;    
+       border: none;
+        padding: 15px;
+        margin-top: 10px;
+        margin-left: 10px;
+        font-size: large;
+
+    }
+
+    /* Button group styling */
+    .button-group {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Scrollbar Styling */
+    .weather-cards-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .weather-cards-container::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .weather-cards-container::-webkit-scrollbar-thumb {
+        background: #007bff;
+        border-radius: 8px;
+    }
+
+    .button-30 {
+        align-items: center;
+        appearance: none;
+        background-color: #FCFCFD;
+        border-radius: 15px;
+        border-width: 0;
+        box-shadow: rgba(45, 35, 66, 0.4) 0 2px 4px,rgba(45, 35, 66, 0.3) 0 7px 13px -3px,#D6D6E7 0 -3px 0 inset;
+        color: #36395A;
+        cursor: pointer;
+        display: inline-flex;
+        font-family: "JetBrains Mono",monospace;
+        height: 48px;
+        justify-content: center;
+        line-height: 1;
+        list-style: none;
+        padding-left: 16px;
+        padding-right: 16px;
+        position: relative;
+        text-align: left;
+        text-decoration: none;
+        transition: box-shadow .15s,transform .15s;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+        white-space: nowrap;
+        will-change: box-shadow,transform;
+        font-size: 15px;
+    }
+
+        .button-30:focus {
+            box-shadow: #D6D6E7 0 0 0 1.5px inset, rgba(45, 35, 66, 0.4) 0 2px 4px, rgba(45, 35, 66, 0.3) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
+        }
+
+        .button-30:hover {
+            box-shadow: rgba(45, 35, 66, 0.4) 0 4px 8px, rgba(45, 35, 66, 0.3) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
+            transform: translateY(-2px);
+        }
+
+        .button-30:active {
+            box-shadow: #D6D6E7 0 3px 7px inset;
+            transform: translateY(2px);
+        }
+    @@media screen and (max-width: 768px) {
+       
+        .weather-cards-container {
+            flex-direction: column;
+            gap: 12px;
+            padding: 8px;
+            max-height: 400px;
+        }
+        .weather-card {
+            width: 100%;
+            padding: 12px;
+        }
+        
+        .weather-title {
+            font-size: 28px;
+        }
+        
+        .button-group {
+            flex-direction: column;
+            gap: 8px;
+        }
+       
+        .weather-container {
+            padding: 16px;
+            margin: 12px;
+        }
+    }
+</style>
+
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="weather-container">
+    <MudItem xs="12" md="4" Class="weather-title">🌞 Weather 🔎</MudItem>
+
+    <MudPaper Class="weather-wrapper" Style="backdrop-filter: blur(10px); padding: 16px; margin: 2px; border-radius: 12px; background-color: transparent;">
+        <MudGrid>
+            <MudItem xs="12" md="8" Style="padding: 7px;">
+                <MudTextField @bind-Value="city"  Placeholder="Enter city" class="input" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.LocationCity" />
+            </MudItem>
+            <MudItem xs="12" md="4" Class="button-group">
+                <MudIconButton OnClick="FetchWeatherByLocation" Icon="@Icons.Material.Filled.LocationOn" Color="Color.Tertiary" Title="Location"></MudIconButton>
+                <MudButton OnClick="FetchWeatherForecast"><div class="button-30">Search</div></MudButton>
+                <MudIconButton OnClick="ToggleFavorite" Icon="@favoriteIcon" Color="Color.Error" Title="Favorites"></MudIconButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (isLoading)
+    {
+        <MudText Typo="Typo.subtitle1" Class="loading-indicator">Loading weather data...</MudText>
+    }
+    else if (currentWeather != null)
+    {
+        <MudCard Class="current-weather-card" Style="
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    border-radius: 20px;
+    padding: 16px;
+    margin: 8px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+        ">
+            <MudCardHeader>
+                <MudText Typo="Typo.h5" Class="text-primary" Style="color: #007bff; font-weight: 900; text-align: center;">
+                    🌍 Current Weather in @currentWeather.Name
+                </MudText>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudGrid Class="gap-2" Style="margin-top: 12px;">
+                    <MudItem xs="12" sm="6">
+                        <MudText Style="font-weight: 600; font-size: 22px; color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.4);">
+                            🌡️ Temperature: @((currentWeather.Main.Temp - 273.15).ToString("0.0")) °C
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Style="font-weight: 600; font-size: 22px; color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.4);">
+                            🌥️ Condition: @currentWeather.Weather[0].Description
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="12">
+                        <MudText Style="font-weight: 600; font-size: 22px; color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.4); text-align: center;">
+                            💧 Humidity: @currentWeather.Main.Humidity%
+                        </MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+
+
+        <div class="weather-cards-container">
+            @foreach (var forecast in forecastData.List.Where((_, index) => index % 8 == 0))
+            {
+                <div class="weather-card">
+                    <div class="weather-card-header">
+                        <h5>@DateTimeOffset.FromUnixTimeSeconds(forecast.Dt).DateTime.ToLongDateString()</h5>
+                    </div>
+                    <div class="weather-card-content">
+                        <p>🌡️ Temperature: @((forecast.Main.Temp - 273.15).ToString("0.0")) °C</p>
+                        <p>🌥️ Condition: @forecast.Weather[0].Description</p>
+                        <p>💧 Humidity: @forecast.Main.Humidity%</p>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error">@errorMessage</MudAlert>
+    }
+</MudContainer>
+
+
+@code {
+    private string city = string.Empty;
+    private bool isLoading = false;
+    private string? errorMessage = null;
+    private CurrentWeather? currentWeather;
+    private ForecastResponse? forecastData;
+
+    private bool isFavorite = false;
+    private string favoriteIcon => isFavorite ? Icons.Material.Filled.Favorite : Icons.Material.Filled.FavoriteBorder;
+
+    private async Task ToggleFavorite()
+    {
+        if (currentWeather == null) return;
+
+        var userEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            Snackbar.Add("Please log in to save favorites.", Severity.Warning);
+            return;
+        }
+
+        var favoriteWeather = new FavoriteWeather
+            {
+                Email = userEmail,
+                City = currentWeather.Name,
+            };
+
+        try
+        {
+            if (isFavorite)
+            {
+              
+                var response = await Http.PostAsJsonAsync($"https://localhost:7055/api/UserFavorites/remove", favoriteWeather);
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add($"Removed {currentWeather.Name} from your favorites.", Severity.Info);
+                    isFavorite = false;
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Failed to remove: {error}", Severity.Error);
+                }
+            }
+            else
+            {
+                
+                var response = await Http.PostAsJsonAsync($"https://localhost:7055/api/UserFavorites/add", favoriteWeather);
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add($"Added {currentWeather.Name} to your favorites!", Severity.Success);
+                    isFavorite = true;
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Failed to save: {error}", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving favorite: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task FetchWeatherForecast()
+    {
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            errorMessage = "ⓘ Please enter a city name.";
+            return;
+        }
+
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+            string apiKey = "2c7aa567661f19ea0d12656093437448";
+            string url = $"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={apiKey}";
+
+            var response = await Http.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "ⓘ Wrong city name. Please try again.";
+                return;
+            }
+
+            currentWeather = await response.Content.ReadFromJsonAsync<CurrentWeather>();
+
+            string forecastUrl = $"https://api.openweathermap.org/data/2.5/forecast?q={city}&appid={apiKey}";
+            forecastData = await Http.GetFromJsonAsync<ForecastResponse>(forecastUrl);
+
+
+            isFavorite = false;
+
+            if (currentWeather != null && forecastData != null)
+            {
+                currentWeather.Name = forecastData.City.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task FetchWeatherByLocation()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+
+            var location = await GetCurrentLocation();
+            if (location != null)
+            {
+                string apiKey = "2c7aa567661f19ea0d12656093437448";
+                string url = $"https://api.openweathermap.org/data/2.5/weather?lat={location.Latitude}&lon={location.Longitude}&appid={apiKey}";
+
+                var response = await Http.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    errorMessage = "ⓘ Unable to fetch weather data. Please try again later.";
+                    return;
+                }
+
+                currentWeather = await response.Content.ReadFromJsonAsync<CurrentWeather>();
+
+                string forecastUrl = $"https://api.openweathermap.org/data/2.5/forecast?lat={location.Latitude}&lon={location.Longitude}&appid={apiKey}";
+                forecastData = await Http.GetFromJsonAsync<ForecastResponse>(forecastUrl);
+
+                
+                isFavorite = false;
+
+                if (currentWeather != null && forecastData != null)
+                {
+                    currentWeather.Name = forecastData.City.Name;
+                }
+            }
+            else
+            {
+                errorMessage = "Unable to access your location.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+
+    private async Task<Geolocation?> GetCurrentLocation()
+    {
+        try
+        {
+            return await JSRuntime.InvokeAsync<Geolocation>("getCurrentLocation");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task SaveFavoriteCity()
+    {
+        if (currentWeather == null) return;
+
+        var userEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            Snackbar.Add("Please log in to save favorites.", Severity.Warning);
+            return;
+        }
+
+        var favoriteWeather = new FavoriteWeather
+            {
+                Email = userEmail,
+                City = currentWeather.Name,
+            };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"https:localhost:7055/favorites/add", favoriteWeather);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"Added {currentWeather.Name} to your favorites!", Severity.Success);
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Failed to save: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving favorite: {ex.Message}", Severity.Error);
+        }
+    }
+
+    public class CurrentWeather
+    {
+        public string Name { get; set; } = string.Empty;
+        public Main Main { get; set; } = new();
+        public WeatherCondition[] Weather { get; set; } = Array.Empty<WeatherCondition>();
+    }
+
+    public class Geolocation
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
+
+    public class Main
+    {
+        public double Temp { get; set; }
+        public int Humidity { get; set; }
+    }
+
+    public class WeatherCondition
+    {
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public class City
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class ForecastResponse
+    {
+        public City City { get; set; } = new();
+        public List<ForecastItem> List { get; set; } = new();
+    }
+
+    public class ForecastItem
+    {
+        public Main Main { get; set; } = new();
+        public WeatherCondition[] Weather { get; set; } = Array.Empty<WeatherCondition>();
+        public long Dt { get; set; }
+    }
+
+    public class FavoriteWeather
+    {
+        public string Email { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+    }
+}

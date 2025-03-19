@@ -1,0 +1,166 @@
+﻿@using Microsoft.JSInterop;
+@inject IJSRuntime JSRuntime
+@using MudBlazor
+@inject ISnackbar Snackba
+
+@using Microsoft.JSInterop
+@using System.Text.Json.Serialization
+
+
+@if (!isLoggedIn)
+{
+    <div class="top-row ps-3 navbar navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">WeatherWise</a>
+            <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </div>
+
+    <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+        <nav class="nav flex-column">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="counter">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Top Cities
+                </NavLink>
+            </div>
+        </nav>
+    </div>
+            }
+            else{
+            <div class="top-row ps-3 navbar navbar-dark">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="">WeatherWise</a>
+                    <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+                <nav class="nav flex-column">
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                        </NavLink>
+                    </div>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="counter">
+                            <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Top Cities
+                        </NavLink>
+                    </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="favorites">
+                    <span class="bi bi-suit-heart-fill-nav-menu" aria-hidden="true"></span> favorites
+                </NavLink>
+            </div>        <div class="nav-item px-3">
+                <NavLink class="nav-link" href="map">
+                    <span class=" bi bi-wind-nav-menu" aria-hidden="true"></span> WindMap
+                </NavLink>
+            </div>        <div class="nav-item px-3">
+                <NavLink class="nav-link" href="food-suggestions">
+                    <span class=" bi bi-palette-fill-nav-menu" aria-hidden="true"></span> FoodSuggestion
+                </NavLink>
+            </div>   
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="yearly-calendar">
+                    <span class=" bi bi-calendar-heart-fill-nav-menu" aria-hidden="true"></span> calender
+                </NavLink>
+            </div>
+        </nav>
+    </div>
+}
+
+@code {
+    private bool isLoggedIn = false;
+    private string? userName = "User";
+    private string? userInitial = "U";
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoggedIn = await CheckUserLoginState();
+        if (isLoggedIn)
+        {
+            await GetUserDetails();
+        }
+
+        // Try to get the dark mode preference from local storage
+       
+    }
+
+    private async Task<bool> CheckUserLoginState()
+    {
+        string? userEmail = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "userEmail");
+        return !string.IsNullOrEmpty(userEmail);
+    }
+
+    private async Task GetUserDetails()
+    {
+        string? email = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "userEmail");
+        string? name = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "userName");
+
+        if (!string.IsNullOrEmpty(name))
+        {
+            userName = name;
+            userInitial = name[0].ToString().ToUpper();
+        }
+        else if (!string.IsNullOrEmpty(email))
+        {
+            userName = email.Split('@')[0];
+            userInitial = userName[0].ToString().ToUpper();
+        }
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+    private async Task Logout()
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userEmail");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userName");
+        isLoggedIn = false;
+        Console.WriteLine("User has logged out.");
+        StateHasChanged();
+    }
+
+    // Watch for dark mode changes and save preference
+  
+
+    MudTheme MyCustomTheme = new MudTheme()
+        {
+            PaletteLight = new PaletteLight()
+            {
+                Primary = "#17a2b8",
+                Secondary = "#28a745",
+                AppbarBackground = "#17a2b8",
+                Background = "#f8f9fa",
+                Surface = "#ffffff",
+                DrawerBackground = "#ffffff",
+                DrawerText = "rgba(0,0,0, 0.7)",
+                Success = "#28a745"
+            },
+            PaletteDark = new PaletteDark()
+            {
+                Primary = "#0dcaf0",
+                Secondary = "#20c997",
+                AppbarBackground = "#343a40",
+                Background = "#121212",
+                Surface = "#1e1e1e",
+                DrawerBackground = "#1e1e1e",
+                DrawerText = "rgba(255,255,255, 0.7)",
+                Success = "#20c997"
+            
+            }
+        };
+
+}

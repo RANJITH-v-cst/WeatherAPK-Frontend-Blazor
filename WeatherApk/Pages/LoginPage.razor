@@ -1,0 +1,120 @@
+﻿@page "/login"
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject SupabaseClient SupabaseClient
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
+<style>
+    /* Glassmorphism effect for login card */
+    .glass-card {
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        color: #fff;
+        transition: all 0.3s ease-in-out;
+    }
+
+    /* Button glass effect */
+    .glass-btn {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    /* Button hover effect */
+    .glass-btn:hover {
+        background: rgba(255, 255, 255, 0.4);
+        color: black;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        transform: scale(1.05);
+    }
+
+    /* Text alignment and style */
+    .text-primary {
+        color: white;
+        font-weight: bold;
+    }
+
+    .register-link {
+        color: cornflowerblue;
+        font-weight: bold;
+        text-decoration: none;
+    }
+
+    .register-link:hover {
+        text-decoration: underline;
+    }
+
+    .register-router-wrapper {
+        text-align: center;
+    }
+</style>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex justify-center align-center" Style="height:100vh;">
+    <MudCard Class="glass-card pa-6" Style="width:100%; max-width:450px;">
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.h4" Align="Align.Center" Class="text-primary">Login</MudText>
+
+            <MudTextField Label="Email" @bind-Value="Email" Placeholder="Enter your email" Required="true" Style="height: 3lh;" />
+            <MudTextField Label="Password" @bind-Value="Password" Placeholder="Enter your password" InputType="InputType.Password" Required="true" Style="height: 3lh;" />
+
+            <MudStack Direction="Row" Justify="Justify.Center" Spacing="2">
+                <MudButton OnClick="LoginUser" Variant="Variant.Filled" Color="Color.Primary" Class="glass-btn">Login</MudButton>
+            </MudStack>
+
+            <div class="register-router-wrapper">
+                <span>Don't have an account? </span>
+                <a class="register-link" href="/register">Register</a>
+            </div>
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <MudText Color="Color.Error" Align="Align.Center">@ErrorMessage</MudText>
+            }
+        </MudStack>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private string Email = string.Empty;
+    private string Password = string.Empty;
+    private string ErrorMessage;
+    private Supabase.Client client;
+
+    private async Task LoginUser()
+    {
+        try
+        {
+            client = SupabaseClient.GetClient();
+            var result = await client.Auth.SignIn(Email, Password);
+
+            if (result != null && !string.IsNullOrEmpty(result.AccessToken))
+            {
+                await LocalStorage.SetItemAsync("authToken", result.AccessToken);
+                await LocalStorage.SetItemAsync("userEmail", Email);
+
+                Snackbar.Add("Login Successful!", Severity.Success);
+                Navigation.NavigateTo("/");
+                StateHasChanged();
+            }
+            else
+            {
+                ErrorMessage = "Invalid login credentials.";
+                Snackbar.Add(ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Login failed: {ex.Message}";
+            Snackbar.Add(ErrorMessage, Severity.Error);
+        }
+    }
+}

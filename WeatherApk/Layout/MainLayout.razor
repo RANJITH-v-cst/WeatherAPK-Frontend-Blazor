@@ -1,0 +1,145 @@
+﻿<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+@using Microsoft.JSInterop;
+@inject IJSRuntime JSRuntime
+@using MudBlazor
+@inject ISnackbar Snackba
+@inherits LayoutComponentBase
+
+<div class="page">
+ 
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="MyCustomTheme" />
+            <MudToggleIconButton @bind-Toggled="_isDarkMode"
+                                 Icon="@Icons.Material.Filled.LightMode"
+                                 Color="@Color.Warning"
+                                 ToggledIcon="@Icons.Material.Filled.DarkMode"
+                                 ToggledColor="@Color.Info"
+                                 Class="theme-toggle" />
+            @if (!isLoggedIn)
+            {
+                
+                    <NavLink class="nav-link button-30"  Href="/login">
+                    <div class="button-30">Login</div>
+                    </NavLink>
+                
+            }
+            else
+            {
+                
+                        <div>
+                        <NavLink class="nav-link "   @onclick="Logout" href="/">
+                        <div class="button-30">Logout</div>
+                            </NavLink>
+                        </div>
+            }
+        </div>
+            @Body   
+    </main>
+</div>
+
+<style>
+ 
+</style>
+
+    @code {
+        private bool isLoggedIn = false;
+        private bool _isDarkMode;
+        private bool _navbarExpanded = false;
+        private string? userName = "User";
+        private string? userInitial = "U";
+
+        protected override async Task OnInitializedAsync()
+        {
+            isLoggedIn = await CheckUserLoginState();
+            if (isLoggedIn)
+            {
+                await GetUserDetails();
+            }
+
+            // Try to get the dark mode preference from local storage
+            var storedDarkMode = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "darkMode");
+            _isDarkMode = storedDarkMode == "true";
+        }
+
+        private async Task<bool> CheckUserLoginState()
+        {
+            string? userEmail = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "userEmail");
+            return !string.IsNullOrEmpty(userEmail);
+        }
+
+        private async Task GetUserDetails()
+        {
+            string? email = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "userEmail");
+            string? name = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "userName");
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                userName = name;
+                userInitial = name[0].ToString().ToUpper();
+            }
+            else if (!string.IsNullOrEmpty(email))
+            {
+                userName = email.Split('@')[0];
+                userInitial = userName[0].ToString().ToUpper();
+            }
+        }
+
+        private void ToggleNavbar()
+        {
+            _navbarExpanded = !_navbarExpanded;
+        }
+
+        private async Task Logout()
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userEmail");
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userName");
+            isLoggedIn = false;
+            Console.WriteLine("User has logged out.");
+            StateHasChanged();
+        }
+
+        // Watch for dark mode changes and save preference
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (!firstRender)
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "darkMode", _isDarkMode.ToString().ToLower());
+            }
+        }
+
+        MudTheme MyCustomTheme = new MudTheme()
+        {
+            PaletteLight = new PaletteLight()
+            {
+                Primary = "#17a2b8",
+                Secondary = "#28a745",
+                AppbarBackground = "#17a2b8",
+                Background = "#f8f9fa",
+                Surface = "#ffffff",
+                DrawerBackground = "#ffffff",
+                DrawerText = "rgba(0,0,0, 0.7)",
+                Success = "#28a745"
+            },
+            PaletteDark = new PaletteDark()
+            {
+                Primary = "#0dcaf0",
+                Secondary = "#20c997",
+                AppbarBackground = "#343a40",
+                Background = "#121212",
+                Surface = "#1e1e1e",
+                DrawerBackground = "#1e1e1e",
+                DrawerText = "rgba(255,255,255, 0.7)",
+                Success = "#20c997"
+            },
+           
+        };
+    }

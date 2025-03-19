@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Cors.ja" Version="5.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Cors" Version="2.3.0" />
+    <PackageReference Include="MudBlazor" Version="8.2.0" />
+    <PackageReference Include="MudBlazor.ThemeManager" Version="3.0.0" />
+    <PackageReference Include="Nager.Date" Version="2.8.2" />
+    <PackageReference Include="sib_api_v3_sdk" Version="4.0.2" />
+    <PackageReference Include="Supabase" Version="1.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+  </ItemGroup>
+
+</Project>
