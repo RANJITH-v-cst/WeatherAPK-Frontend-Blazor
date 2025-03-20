@@ -69,6 +69,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadFavoriteCities();
+        _ = StartWeatherUpdates();
     }
 
     private async Task LoadFavoriteCities()
@@ -195,6 +196,30 @@
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", "favoriteCities", JsonSerializer.Serialize(favoriteCities));
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", "cityWeather", JsonSerializer.Serialize(cityWeather));
     }
+    private async Task StartWeatherUpdates()
+    {
+        while (true)
+        {
+            if (favoriteCities != null && favoriteCities.Count > 0)
+            {
+                await GetWeatherForCities(favoriteCities);
+                await ShowWeatherPopup();
+            }
+
+            await Task.Delay(TimeSpan.FromMinutes(1)); // Wait for 2 minutes
+        }
+    }
+
+    private async Task ShowWeatherPopup()
+    {
+        if (cityWeather.Count > 0)
+        {
+            string weatherDetails = string.Join("\n", cityWeather.Select(w => $"{w.City}: {w.Temperature}°C, {w.Humidity}%, {w.Condition}"));
+            await JSRuntime.InvokeVoidAsync("alert", $"Latest Weather Updates:\n{weatherDetails}");
+        }
+    }
+
+    
 
     public class CityWeather
     {

@@ -7,7 +7,6 @@
 @using MudBlazor
 @inject ISnackbar Snackba
 @inherits LayoutComponentBase
-
 <div class="page">
  
     <div class="sidebar">
@@ -115,6 +114,8 @@
                 await JSRuntime.InvokeVoidAsync("localStorage.setItem", "darkMode", _isDarkMode.ToString().ToLower());
             }
         }
+    
+
 
         MudTheme MyCustomTheme = new MudTheme()
         {

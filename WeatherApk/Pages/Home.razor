@@ -2,6 +2,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
+
 <style>
     /* Container for weather cards */
     .weather-cards-container {
@@ -73,14 +74,14 @@
         font-weight: bold;
         text-align: center;
     }
-    .input{
-        border-radius: 12px;    
-       border: none;
+
+    .input {
+        border-radius: 12px;
+        border: none;
         padding: 15px;
         margin-top: 10px;
         margin-left: 10px;
         font-size: large;
-
     }
 
     /* Button group styling */
@@ -116,7 +117,6 @@
         color: #36395A;
         cursor: pointer;
         display: inline-flex;
-        font-family: "JetBrains Mono",monospace;
         height: 48px;
         justify-content: center;
         line-height: 1;
@@ -132,7 +132,7 @@
         touch-action: manipulation;
         white-space: nowrap;
         will-change: box-shadow,transform;
-        font-size: 15px;
+        font-size: 12px;
     }
 
         .button-30:focus {
@@ -148,28 +148,29 @@
             box-shadow: #D6D6E7 0 3px 7px inset;
             transform: translateY(2px);
         }
+
     @@media screen and (max-width: 768px) {
-       
         .weather-cards-container {
             flex-direction: column;
             gap: 12px;
             padding: 8px;
             max-height: 400px;
         }
+
         .weather-card {
             width: 100%;
             padding: 12px;
         }
-        
+
         .weather-title {
             font-size: 28px;
         }
-        
+
         .button-group {
             flex-direction: column;
             gap: 8px;
         }
-       
+
         .weather-container {
             padding: 16px;
             margin: 12px;
@@ -177,14 +178,13 @@
     }
 </style>
 
-
 <MudContainer MaxWidth="MaxWidth.Medium" Class="weather-container">
     <MudItem xs="12" md="4" Class="weather-title">🌞 Weather 🔎</MudItem>
 
     <MudPaper Class="weather-wrapper" Style="backdrop-filter: blur(10px); padding: 16px; margin: 2px; border-radius: 12px; background-color: transparent;">
         <MudGrid>
             <MudItem xs="12" md="8" Style="padding: 7px;">
-                <MudTextField @bind-Value="city"  Placeholder="Enter city" class="input" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.LocationCity" />
+                <MudTextField @bind-Value="city" Placeholder="Enter city" Class="input" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.LocationCity" />
             </MudItem>
             <MudItem xs="12" md="4" Class="button-group">
                 <MudIconButton OnClick="FetchWeatherByLocation" Icon="@Icons.Material.Filled.LocationOn" Color="Color.Tertiary" Title="Location"></MudIconButton>
@@ -201,16 +201,16 @@
     else if (currentWeather != null)
     {
         <MudCard Class="current-weather-card" Style="
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%);
-    border-radius: 20px;
-    padding: 16px;
-    margin: 8px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-        ">
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px) saturate(180%);
+            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            border-radius: 20px;
+            padding: 16px;
+            margin: 8px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            ">
             <MudCardHeader>
                 <MudText Typo="Typo.h5" Class="text-primary" Style="color: #007bff; font-weight: 900; text-align: center;">
                     🌍 Current Weather in @currentWeather.Name
@@ -237,7 +237,6 @@
             </MudCardContent>
         </MudCard>
 
-
         <div class="weather-cards-container">
             @foreach (var forecast in forecastData.List.Where((_, index) => index % 8 == 0))
             {
@@ -260,7 +259,6 @@
     }
 </MudContainer>
 
-
 @code {
     private string city = string.Empty;
     private bool isLoading = false;
@@ -270,6 +268,48 @@
 
     private bool isFavorite = false;
     private string favoriteIcon => isFavorite ? Icons.Material.Filled.Favorite : Icons.Material.Filled.FavoriteBorder;
+
+    // Search limit variables
+    private const int MaxSearchesForGuests = 5;
+    private int searchCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            var storedValue = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "weatherSearchCount");
+            searchCount = int.TryParse(storedValue, out int count) ? count : 0;
+        }
+    }
+
+    private async Task IncrementSearchCount()
+    {
+        var userEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+        if (string.IsNullOrEmpty(userEmail)) // Only increment for non-logged-in users
+        {
+            searchCount++;
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "weatherSearchCount", searchCount);
+        }
+    }
+
+    private async Task<bool> CanSearch()
+    {
+        var userEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+        if (!string.IsNullOrEmpty(userEmail)) // Logged-in users have unlimited searches
+        {
+            return true;
+        }
+
+        // Check search limit for non-logged-in users
+        if (searchCount >= MaxSearchesForGuests)
+        {
+            errorMessage = "ⓘ You've reached the maximum of 5 searches. Please log in for unlimited searches.";
+            Snackbar.Add(errorMessage, Severity.Warning);
+            return false;
+        }
+        return true;
+    }
 
     private async Task ToggleFavorite()
     {
@@ -293,7 +333,6 @@
         {
             if (isFavorite)
             {
-              
                 var response = await Http.PostAsJsonAsync($"https://localhost:7055/api/UserFavorites/remove", favoriteWeather);
                 if (response.IsSuccessStatusCode)
                 {
@@ -308,7 +347,6 @@
             }
             else
             {
-                
                 var response = await Http.PostAsJsonAsync($"https://localhost:7055/api/UserFavorites/add", favoriteWeather);
                 if (response.IsSuccessStatusCode)
                 {
@@ -336,6 +374,8 @@
             return;
         }
 
+        if (!await CanSearch()) return; // Check if user can search
+
         try
         {
             isLoading = true;
@@ -356,13 +396,14 @@
             string forecastUrl = $"https://api.openweathermap.org/data/2.5/forecast?q={city}&appid={apiKey}";
             forecastData = await Http.GetFromJsonAsync<ForecastResponse>(forecastUrl);
 
-
             isFavorite = false;
 
             if (currentWeather != null && forecastData != null)
             {
                 currentWeather.Name = forecastData.City.Name;
             }
+
+            await IncrementSearchCount(); // Increment search count after successful search
         }
         catch (Exception ex)
         {
@@ -376,6 +417,8 @@
 
     private async Task FetchWeatherByLocation()
     {
+        if (!await CanSearch()) return; // Check if user can search
+
         try
         {
             isLoading = true;
@@ -400,13 +443,14 @@
                 string forecastUrl = $"https://api.openweathermap.org/data/2.5/forecast?lat={location.Latitude}&lon={location.Longitude}&appid={apiKey}";
                 forecastData = await Http.GetFromJsonAsync<ForecastResponse>(forecastUrl);
 
-                
                 isFavorite = false;
 
                 if (currentWeather != null && forecastData != null)
                 {
                     currentWeather.Name = forecastData.City.Name;
                 }
+
+                await IncrementSearchCount(); // Increment search count after successful search
             }
             else
             {
@@ -422,8 +466,6 @@
             isLoading = false;
         }
     }
-
-
 
     private async Task<Geolocation?> GetCurrentLocation()
     {
@@ -457,7 +499,7 @@
 
         try
         {
-            var response = await Http.PostAsJsonAsync($"https:localhost:7055/favorites/add", favoriteWeather);
+            var response = await Http.PostAsJsonAsync($"https://localhost:7055/favorites/add", favoriteWeather);
 
             if (response.IsSuccessStatusCode)
             {

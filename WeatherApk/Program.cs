@@ -5,9 +5,6 @@ using System.Text.Json.Serialization;
 using Blazored.LocalStorage;
 using Supabase.Gotrue;
 
-
-
-
 namespace WeatherApk
 {
     public class Program
@@ -20,6 +17,7 @@ namespace WeatherApk
             builder.Services.AddMudServices();
             builder.Services.AddBlazoredLocalStorage();
             builder.Services.AddScoped<SupabaseClient>();
+
 
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
             await builder.Build().RunAsync();
