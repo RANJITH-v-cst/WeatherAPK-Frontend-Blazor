@@ -215,7 +215,7 @@
         if (cityWeather.Count > 0)
         {
             string weatherDetails = string.Join("\n", cityWeather.Select(w => $"{w.City}: {w.Temperature}°C, {w.Humidity}%, {w.Condition}"));
-            await JSRuntime.InvokeVoidAsync("alert", $"Latest Weather Updates:\n{weatherDetails}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Your Favorite Cities Latest Weather Updates:\n{weatherDetails}");
         }
     }
 

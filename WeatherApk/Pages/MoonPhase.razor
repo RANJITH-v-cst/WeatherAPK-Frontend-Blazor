@@ -1,0 +1,226 @@
+﻿@page "/moonphase"
+@code {
+    private DateTime currentDate = DateTime.UtcNow;
+    private List<MoonPhaseInfo> moonPhases;
+
+    public class MoonPhaseInfo
+    {
+        public string Phase { get; set; }
+        public string Emoji { get; set; }
+        public DateTime Date { get; set; }
+        public double Illumination { get; set; }
+    }
+
+    protected override void OnInitialized()
+    {
+        GenerateMoonPhasesForWeek();
+    }
+
+    private void GenerateMoonPhasesForWeek()
+    {
+        moonPhases = new List<MoonPhaseInfo>();
+
+        for (int i = 0; i < 7; i++)
+        {
+            DateTime date = currentDate.AddDays(i);
+            moonPhases.Add(CalculateMoonPhase(date));
+        }
+    }
+
+    private MoonPhaseInfo CalculateMoonPhase(DateTime date)
+    {
+        double epoch = new DateTime(2000, 1, 6, 18, 14, 0).ToOADate();
+        double now = date.ToOADate();
+
+        double lunationCycle = 29.53058885;
+
+        double lunarMonths = (now - epoch) / lunationCycle;
+
+        double phase = lunarMonths - Math.Floor(lunarMonths);
+
+        double illumination = Math.Abs(Math.Cos(phase * 2 * Math.PI)) * 100;
+
+        return new MoonPhaseInfo
+            {
+                Date = date,
+                Illumination = Math.Round(illumination, 2),
+                Phase = DetermineMoonPhase(phase),
+                Emoji = GetMoonPhaseEmoji(phase)
+            };
+    }
+
+    private string DetermineMoonPhase(double phase)
+    {
+        if (phase < 0.0625) return "New Moon";
+        if (phase < 0.1875) return "Waxing Crescent";
+        if (phase < 0.3125) return "First Quarter";
+        if (phase < 0.4375) return "Waxing Gibbous";
+        if (phase < 0.5625) return "Full Moon";
+        if (phase < 0.6875) return "Waning Gibbous";
+        if (phase < 0.8125) return "Last Quarter";
+        if (phase < 0.9375) return "Waning Crescent";
+        return "New Moon";
+    }
+
+    private string GetMoonPhaseEmoji(double phase)
+    {
+        if (phase < 0.0625) return "🌑";
+        if (phase < 0.1875) return "🌒";
+        if (phase < 0.3125) return "🌓";
+        if (phase < 0.4375) return "🌔";
+        if (phase < 0.5625) return "🌕";
+        if (phase < 0.6875) return "🌖";
+        if (phase < 0.8125) return "🌗";
+        if (phase < 0.9375) return "🌘";
+        return "🌑";
+    }
+}
+
+<div class="moon-phase-container">
+    <h2 class="page-title">Moon Phases for the Week</h2>
+    <div class="moon-card-container">
+        @foreach (var phase in moonPhases)
+        {
+            <div class="glass-card">
+                <div class="card-content">
+                    <p class="date"><strong>@phase.Date.ToString("MMM dd")</strong></p>
+                    <p class="emoji moon-emoji">@phase.Emoji</p>
+                    <p class="phase text-white">@phase.Phase</p>
+                    <p class="illumination text-white">Illumination: @phase.Illumination%</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+
+    .moon-phase-container {
+        width: 100%;
+        max-width: 100%;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .page-title {
+        color: white;
+        text-align: center;
+        font-size: 2.5rem;
+        margin-bottom: 30px;
+        font-weight: bold;
+    }
+
+    .moon-card-container {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 20px;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+        .glass-card .card-content {
+            padding: 25px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .glass-card .date {
+            font-size: 1.2rem;
+            color: #e0e0e0;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .glass-card .moon-emoji {
+            font-size: 5rem;
+            margin: 15px 0;
+            transition: transform 0.3s ease, text-shadow 0.3s ease;
+        }
+
+        .glass-card:hover .moon-emoji {
+            transform: rotate(360deg) scale(1.1);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.7), 0 0 30px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 255, 255, 0.3);
+            animation: moon-glow 2s infinite alternate;
+        }
+
+    @@keyframes moon-glow {
+        from
+
+    {
+        text-shadow: 0 0 15px rgba(255, 255, 255, 0.5), 0 0 25px rgba(255, 255, 255, 0.3);
+    }
+
+    to {
+        text-shadow: 0 0 30px rgba(255, 255, 255, 0.7), 0 0 40px rgba(255, 255, 255, 0.5);
+    }
+
+    }
+
+    .glass-card .phase {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+        color: #f0f0f0;
+        font-weight: bold;
+    }
+
+    .glass-card .illumination {
+        color: #c0c0c0;
+        font-size: 1rem;
+    }
+
+    .glass-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    @@media (max-width: 1200px) {
+        .moon-card-container
+
+    {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .moon-card-container
+
+    {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .moon-card-container
+
+    {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    }
+</style>

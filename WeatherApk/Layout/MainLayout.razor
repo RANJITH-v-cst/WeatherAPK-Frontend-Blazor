@@ -12,7 +12,6 @@
     <div class="sidebar">
         <NavMenu />
     </div>
-
     <main>
         <div class="top-row px-4">
             <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="MyCustomTheme" />
@@ -32,7 +31,6 @@
             }
             else
             {
-                
                         <div>
                         <NavLink class="nav-link "   @onclick="Logout" href="/">
                         <div class="button-30">Logout</div>
@@ -117,7 +115,7 @@
     
 
 
-        MudTheme MyCustomTheme = new MudTheme()
+    MudTheme MyCustomTheme = new MudTheme()
         {
             PaletteLight = new PaletteLight()
             {
@@ -128,7 +126,9 @@
                 Surface = "#ffffff",
                 DrawerBackground = "#ffffff",
                 DrawerText = "rgba(0,0,0, 0.7)",
-                Success = "#28a745"
+                Success = "#28a745",
+                TextPrimary = "#212529",  
+                TextSecondary = "rgba(0,0,0, 0.6)"
             },
             PaletteDark = new PaletteDark()
             {
@@ -139,8 +139,10 @@
                 Surface = "#1e1e1e",
                 DrawerBackground = "#1e1e1e",
                 DrawerText = "rgba(255,255,255, 0.7)",
-                Success = "#20c997"
-            },
-           
+                Success = "#20c997",
+                TextPrimary = "#ffffff",  
+                TextSecondary = "rgba(255,255,255, 0.7)"
+            }
         };
+
     }

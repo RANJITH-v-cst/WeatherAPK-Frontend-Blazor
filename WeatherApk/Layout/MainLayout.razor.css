@@ -2,7 +2,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    background-image: url('https://images.pexels.com/photos/1278544/pexels-photo-1278544.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
+    background-image: url('https://images.pexels.com/photos/417122/pexels-photo-417122.jpeg?auto=compress&cs=tinysrgb&w=600');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -90,16 +90,16 @@ main {
 }
 @media only screen and (max-width: 767px) {
     body {
-        background-image: url('https://images.pexels.com/photos/1278544/pexels-photo-1278544.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
-        background-size: cover; 
-        background-position: center; 
+        background-image: url('https://images.pexels.com/photos/440731/pexels-photo-440731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
+        background-size: cover;
+        background-position: center;
         background-attachment: fixed;
         min-height: 100vh;
     }
 }
 @media only screen and (min-width: 768px) and (max-width: 1023px) {
     body {
-        background-image: url('https://images.pexels.com/photos/1278544/pexels-photo-1278544.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
+        background-image: url('https://images.pexels.com/photos/440731/pexels-photo-440731.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
         background-size: cover;
         background-position: center;
         min-height: 100vh;
